@@ -1,0 +1,56 @@
+---
+# Documentation:
+# This playbook helps to check if all hosts defined into the inventory
+# are joinable. This playbook can also retrieve a dump of all remote
+# hosts. This should support most UNIX operating systems (OSX included).
+
+
+#sudo -s
+#echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+#chmod 644 /etc/resolv.conf
+#exit
+#ping google.com
+
+
+- hosts: all
+
+  tasks:
+
+    - name: Update all module
+      become: true
+      raw: apt-get -y upgrade && apt-get -y update && apt-get install -y cifs-utils
+      register: update    
+
+    - name: Ansible check Disque-1 directory exists example.
+      stat:
+        path: /mnt/Disque-1
+      register: mount_point_directory
+
+    - name: ansible create directory example
+      become: true
+      when: not mount_point_directory.stat.exists
+      file:
+        path: /mnt/Disque-1
+        state: directory
+        mode: "u=rw,g=wx,o=rwx"
+
+    - name: Ansible check cloud directory exists example.
+      stat:
+        path: /mnt/Disque-1/Cloud
+      register: cloud_point_directory
+
+    - name: ansible create directory example
+      become: true
+      when: not mount_point_directory.stat.exists
+      file:
+        path: /mnt/Disque-1
+        state: directory
+        mode: "u=rw,g=wx,o=rwx"
+    
+    - name: ansible mount directory if it's empty
+      when: not cloud_point_directory.stat.exists
+      become: true
+      raw: mount -t cifs -o username=xpel,password=xpel,dir_mode=0777,file_mode=0777,nounix //192.168.0.9/Disque-1 /mnt/Disque-1   
+
+
+    #- debug: msg="{{ update.stdout_lines}}"

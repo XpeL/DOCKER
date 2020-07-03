@@ -1,0 +1,74 @@
+version: '3.3'
+
+networks:
+  traefik-public:
+    external: true
+  nextcloud-network:
+    external: true
+    
+volumes:
+  cloud:
+      driver_opts:
+          type: "nfs"
+          o: "nfsvers=4,addr=192.168.0.12,rw"
+          device: ":/NAS/Cloud"
+
+services:
+  nextcloud:
+    image: nextcloud:stable-apache
+    #command: "cloud.umanlogics.com"
+    networks:
+     - traefik-public
+     - nextcloud-network
+    environment:
+        MYSQL_HOST : nextcloud-db
+        MYSQL_ROOT_PASSWORD: my-new-password
+        MYSQL_DATABASE: nextcloud
+        MYSQL_USER: nextcloud
+        MYSQL_PASSWORD: umanlogics-nextcloud
+        OVERWRITEPROTOCOL: https
+    volumes:
+     - /mnt/Applications/nextcloud/www:/var/www/html
+     - cloud:/NAS
+     - /mnt/Applications/nextcloud/backup:/Backup
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      labels:
+        - traefik.enable=true         
+        - traefik.port=80
+        - traefik.protocol=http
+        - traefik.frontend.rule=Host:cloud.umanlogics.com
+        - traefik.tags=${TRAEFIK_PUBLIC_TAG:-traefik-public}
+        - traefik.docker.network=traefik-public
+        # Traefik service that listens to HTTP
+        - traefik.redirectorservice.frontend.entryPoints=http
+        - traefik.redirectorservice.frontend.redirect.entryPoint=https
+        # Traefik service that listens to HTTPS
+        - traefik.webservice.frontend.entryPoints=https
+    
+  nextcloud-db:
+     image: hypriot/rpi-mysql
+     networks:
+       - nextcloud-network
+     volumes:
+       - /mnt/Applications/nextcloud/database:/var/lib/mysql
+       - /mnt/Applications/nextcloud/database-conf:/etc/mysql/conf.d
+     ports:
+       - 3307:3306
+     environment:
+        MYSQL_ROOT_PASSWORD: my-new-password
+        MYSQL_DATABASE: nextcloud
+        MYSQL_USER: nextcloud
+        MYSQL_PASSWORD: umanlogics-nextcloud
+     deploy:
+       replicas: 1
+       placement:
+         constraints:
+           - node.role == worker
+       resources:
+         limits:
+           memory: 650M
+         reservations:
+           memory: 650M

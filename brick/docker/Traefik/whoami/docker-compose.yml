@@ -1,0 +1,41 @@
+version: "3.8"
+
+networks:
+  traefik-public:
+    external: true
+
+services:
+  whoami:
+    image: stefanscherer/whoami
+    networks:
+      - default
+      - traefik-public
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}'
+    deploy:
+        replicas: 3
+        restart_policy:
+          condition: on-failure
+          delay: 10s
+          window: 5s
+        placement:
+            max_replicas_per_node: 1
+        resources:
+          limits:
+            memory: 16M
+          reservations:
+            memory: 16M
+        labels:
+          - traefik.enable=true         
+          - traefik.port=8080
+          - traefik.frontend.rule=Host:whoami.umanlogics.com
+          - traefik.tags=${TRAEFIK_PUBLIC_TAG:-traefik-public}
+          - traefik.docker.network=traefik-public
+          # Traefik service that listens to HTTP
+          - traefik.redirectorservice.frontend.entryPoints=http
+          - traefik.redirectorservice.frontend.redirect.entryPoint=https
+          # Traefik service that listens to HTTPS
+          - traefik.webservice.frontend.entryPoints=https
+          - --metrics
+          - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0

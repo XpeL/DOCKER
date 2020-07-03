@@ -1,0 +1,26 @@
+---
+# Documentation:
+# This playbook helps to check if all hosts defined into the inventory
+# are joinable. This playbook can also retrieve a dump of all remote
+# hosts. This should support most UNIX operating systems (OSX included).
+
+
+#sudo -s
+#echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+#chmod 644 /etc/resolv.conf
+#exit
+#ping google.com
+
+
+- hosts: all
+
+  tasks:
+
+    - name: Remove volume from nextcloud
+      become: true
+      raw: docker volume prune -f
+      register: update    
+
+
+
+    #- debug: msg="{{ update.stdout_lines}}"

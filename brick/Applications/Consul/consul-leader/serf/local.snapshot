@@ -1,0 +1,26 @@
+alive: 83d24ba09def 10.0.7.104:8301
+event-clock: 1
+alive: 11ca26d7ee98 10.0.7.109:8301
+clock: 1
+event-clock: 2
+not-alive: 11ca26d7ee98
+alive: 11ca26d7ee98 10.0.7.109:8301
+event-clock: 3
+event-clock: 4
+not-alive: 11ca26d7ee98
+alive: 11ca26d7ee98 10.0.7.109:8301
+event-clock: 5
+not-alive: 11ca26d7ee98
+alive: 11ca26d7ee98 10.0.7.109:8301
+event-clock: 6
+event-clock: 7
+not-alive: 11ca26d7ee98
+alive: 11ca26d7ee98 10.0.7.109:8301
+alive: ad869308dbfb 10.0.7.125:8301
+alive: 0b186c399115 10.0.7.122:8301
+clock: 2
+event-clock: 8
+alive: 15d07d17c2c8 10.0.7.146:8301
+alive: 32f19fbba611 10.0.7.147:8301
+clock: 3
+event-clock: 9

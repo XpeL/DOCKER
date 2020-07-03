@@ -1,0 +1,100 @@
+version: '3.3'
+
+volumes:
+  wordpress:
+  db:
+  ftp:
+      driver_opts:
+          type: "nfs"
+          o: "nfsvers=4,addr=192.168.0.12,rw"
+          device: ":/vol/Applications/ftp"
+          
+  wordpress-php-conf-uploads:
+      driver_opts:
+          type: "nfs"
+          o: "nfsvers=4,addr=192.168.0.12,rw"
+          device: ":/vol/Applications/wordpress/conf/"
+networks:
+  mysql-network:
+    external: true
+  traefik-public:
+    external: true
+services:
+   wordpress:
+    image: xpel/wordpress-ioncube-arm
+    depends_on:
+      - mysql
+    volumes:
+      - wordpress:/var/www/html
+      - wordpress-php-conf-uploads:/usr/local/etc/php/conf.d/
+    networks:
+     - traefik-public
+     - mysql-network
+    environment:
+       WORDPRESS_DB_HOST: mysql:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: wordpress
+       WORDPRESS_DB_NAME: wordpress
+    deploy:
+       replicas: 1
+       restart_policy:
+         condition: on-failure
+         delay: 10s
+         window: 5s
+       placement:
+        constraints:
+          - node.role == worker
+       resources:
+         limits:
+           memory: 650M
+         reservations:
+           memory: 650M
+       labels:
+        - traefik.enable=true         
+        - traefik.port=80
+        - traefik.protocol=http
+        - traefik.frontend.rule=Host:www.umanlogics.com,umanlogics.com
+        - traefik.tags=${TRAEFIK_PUBLIC_TAG:-traefik-public}
+        - traefik.docker.network=traefik-public
+        # Traefik service that listens to HTTP
+        - traefik.redirectorservice.frontend.entryPoints=http
+        - traefik.redirectorservice.frontend.redirect.entryPoint=https
+        # Traefik service that listens to HTTPS
+        - traefik.webservice.frontend.entryPoints=https
+    
+   mysql:
+     image: hypriot/rpi-mysql
+     ports:
+       - 3306:3306
+     networks:
+      - mysql-network
+     volumes:
+       - db:/var/lib/mysql
+     environment:
+        MYSQL_ROOT_PASSWORD: somewordpress
+        MYSQL_DATABASE: wordpress
+        MYSQL_USER: wordpress
+        MYSQL_PASSWORD: wordpress
+     deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+        
+   pure-ftpd:
+      image: gists/pure-ftpd
+      networks:
+         - mysql-network
+      ports:
+        - "21:21"
+        - "30000-30009:30000-30009"
+      volumes:
+        - wordpress:/home/ftpuser
+        - ftp:/etc/pureftpd
+      environment:
+        PUBLIC_HOST: umanlogics.com
+      deploy:
+       replicas: 1
+       placement:
+        constraints:
+          - node.role == worker

@@ -1,0 +1,70 @@
+version: '3.3'
+
+volumes:
+    wordpress-volume:
+      driver_opts:
+          type: "nfs"
+          o: "nfsvers=4,addr=192.168.0.12,rw"
+          device: ":/vol/Applications/wordpress/.data/wp"
+
+networks:
+  website-network:
+  traefik-public:
+    external: true
+
+services:
+  caddy:
+    image: rothgar/rpi-caddy:0.9.1
+    #build: caddy
+    volumes:
+      - "wordpress-volume:/srv"
+    depends_on:
+      - website-mysql
+      - php
+    networks:
+      - website-network
+      - traefik-public
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+        preferences:
+          - spread: node.id
+      labels:
+        - "traefik.frontend.rule=Host:www.umanlogics.com"
+        - traefik.enable=true
+        - traefik.port=80
+        - "traefik.tags=${TRAEFIK_PUBLIC_TAG:-traefik-public}"
+        - traefik.docker.network=traefik-public
+        # Traefik service that listens to HTTP
+        - traefik.redirectorservice.frontend.entryPoints=http
+        - traefik.redirectorservice.frontend.redirect.entryPoint=https
+        # Traefik service that listens to HTTPS
+        - traefik.webservice.frontend.entryPoints=https
+
+  php:
+    image: rothgar/rpi-php:5.6
+    #build: php
+    networks:
+      - website-network
+    volumes:
+      - "wordpress-volume:/srv"
+
+  website-mysql:
+    image: hypriot/rpi-mysql
+    #build: mysql
+    networks:
+      - website-network
+    ports:
+      - 3306:3306
+    volumes:
+      - "wordpress-volume:/var/lib/mysql"
+      - "wordpress-backup:/docker-entrypoint-initdb.d"
+    environment:
+      # Change for your existing database
+      MYSQL_ROOT_PASSWORD: wordpress
+      # below values should match wp-config
+      MYSQL_DATABASE: blog
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: PASSWORD!!!

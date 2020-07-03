@@ -1,0 +1,4 @@
+[rpi2]
+192.168.0.12 ansible_user=pirate
+
+

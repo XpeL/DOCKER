@@ -1,0 +1,40 @@
+---
+# Documentation come from : https://blog.alexellis.io/prometheus-nodeexporter-rpi/
+
+- hosts: all
+
+  tasks:
+
+    - name: Retrieve node exporter
+      become: true
+      raw: curl -SL https://github.com/prometheus/node_exporter/releases/download/v0.14.0/node_exporter-0.14.0.linux-armv7.tar.gz > node_exporter.tar.gz
+      #register: update    
+
+    - name: Unzip node exporter
+      become: true
+      raw: tar -xvf node_exporter.tar.gz -C /usr/local/bin/ --strip-components=1
+    
+    - name: Enable cron
+      become: true
+      raw: systemctl enable cron
+
+    - name: Ansible create file with content example
+      become: true
+      copy:
+        dest: "/etc/systemd/system/nodeexporter.service"
+        content: |
+          [Unit]
+          Description=NodeExporter
+
+          [Service]
+          TimeoutStartSec=0
+          ExecStart=/usr/local/bin/node_exporter
+
+          [Install]
+          WantedBy=multi-user.target
+    
+    - name: Reload daemon
+      become: true
+      raw: sudo systemctl daemon-reload && sudo systemctl enable nodeexporter && sudo systemctl start nodeexporter
+
+    #- debug: msg="{{ update.stdout_lines}}"

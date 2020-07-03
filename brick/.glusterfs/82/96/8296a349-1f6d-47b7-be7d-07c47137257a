@@ -1,0 +1,25 @@
+FROM arm32v7/wordpress
+
+# apache user
+RUN usermod -u 1000 www-data \
+    && groupmod -g 1000 www-data
+
+# extension
+RUN apt-get update \
+    && apt-get install -y \
+        sendmail
+		
+# ioncube loader
+RUN curl -fSL 'https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_armv7l.tar.gz' -o ioncube.tar.gz \
+    && mkdir -p ioncube \
+    && tar -xf ioncube.tar.gz -C ioncube --strip-components=1 \
+    && rm ioncube.tar.gz \
+    && mv ioncube/ioncube_loader_lin_7.3.so /var/www/ioncube_loader_lin_7.3.so \
+    && rm -r ioncube
+
+# php.ini
+COPY config/php.ini /usr/local/etc/php/
+
+# apache
+RUN a2enmod rewrite
+RUN a2enmod ssl
